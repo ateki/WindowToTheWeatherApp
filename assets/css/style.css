@@ -1,0 +1,149 @@
+
+/**** VARIABLES ****/
+:root{
+    --header-light: rgb(31, 67, 231);
+    --header-dark: rgb(9, 29, 120);
+    --primary-light: rgb(40, 122, 228); /* will be used for light section of header and search button */
+    --primary-dark: rgb(9, 29, 120); /* will be used for dark section of header and background of cards */ 
+    --main-background: rgb;
+    --secondary-color: rgb(195, 197, 206);
+}
+
+/**** RESETS ****/
+
+/* box sizeing to remove  */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;  /* includes padding and border in element's total width and height */
+}
+
+body {
+    font-family: sans-serif;  /* will trickle down to children */
+}
+
+
+
+/* GLOBAL CLASSES */
+
+
+
+/* CUSTOM */
+.weather-header {
+    background-image: linear-gradient(to right, var(--primary-light), var(--primary-dark));
+}
+
+
+/* Either add col-lg-12 to both input form-input class
+and input-group-append class or set width 100%
+*/
+
+/* #search-form {
+    width: 100%;
+} */
+/* 
+.search-form,
+.input-group-append,
+.form-input {
+    width: 100px;
+    padding: 10px;
+}
+.search-form {
+    width:100%;
+    padding: 10px;
+} */
+
+/* .input-group {
+    width: 100%;
+}
+ */
+/* .list-group button {
+    
+    background-color: var(--secondary-color);
+    padding: 10px;
+    margin:5px;
+    text-align: center;
+    border-radius: 15px;
+    border: none;
+} */
+
+
+/*  #history >.list-group-item { */
+#history >button {
+    background-color: var(--secondary-color);
+    padding: 10px;
+    margin:5px;
+    text-align: center;
+    border-radius: 15px;
+    border: none;
+ }
+
+/*  .btn.search-button.active,
+ .btn.search-button:active {
+    color:red;
+    background-color: black;
+    border-color: black;
+    outline:none;
+ }
+ */
+/* use id selector */
+/* button.search-button { */
+#search-button { 
+    color: var(--primary-dark);
+    background-color: var(--primary-light);
+    border-radius: 15px !important;
+    font-weight: bolder;
+   /*  border: solid 1px; */
+    text-align: center;
+    justify-content: center;
+    width:100%;
+    margin:5px;
+}
+
+/* button.search-button {
+    color: black;
+    background-color: var(--primary-light);
+    background-color: red;
+    border-radius: 25px;
+    border: solid 1px;
+    text-align: center;
+} 
+ */
+
+
+#forecast .card {
+    background-color: var(--primary-dark);
+    color: white;
+    padding: 10px;
+    margin: 10px;
+} 
+/* Center text on buttons
+round edges and colour */
+
+.input-group-append {
+    width:100%;
+}
+
+.form-input  {
+    width: 100%;
+}
+
+.search-button {
+    width:100%;
+}
+
+/* button {
+    
+  transition: background-color 0.1s;
+}
+button:hover {
+    background-color: #8570a5;
+  }
+ */
+.weather-hr {
+    height:2px;
+    width:100%;
+    border-width:0;
+    border-top: 1px dotted var(--secondary-color);
+}
