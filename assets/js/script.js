@@ -13,6 +13,8 @@ const baseImgURL = `https://openweathermap.org/img/`;
 
 const currentWeatherURL = `${baseDataURL}weather?appid=${apiKey}&units=metric&cnt=${NUM_FORECAST_PER_DAY}&`;
 const forecastURL = `${baseDataURL}forecast?appid=${apiKey}&units=metric&`;
+
+
 const weatherIconURL = `${baseImgURL}w/`;
  
 
@@ -39,34 +41,217 @@ var todaySection = $("#today");
 var forecastSection = $("#forecast");
 
 
-// display weather data
-function getWeatherData(event) {
-    console.log(`getWeather data triggered on search click`);
+const degrees = new Intl.NumberFormat('en-US', {
+    style: 'unit',
+    unit: 'celsius',
+  });
+  
 
+/** ----------------------------------------
+ * Functions to  dynamically generate and/or 
+ * update HTML and customise css.
+ -------------------------------------------*/
+
+/**
+ * Utility Functions
+ */
+
+/**
+ * Sets up the element not to be shown:
+ * - using bootstrap and so adds 'invisible' to the element's classlist not hide.
+ * Note function will not impact any other classes that are currently on the element
+ * and so multi classes should be allowed along with the 'hide'.
+ * No dupes are possible as classlist represents set of tokens it will only hold unique items.
+ * @param {*} element
+ */
+function hide(element) {
+    element.addClass('invisible');
+  }
+  
+  /**
+   * Ensures class of element no longer includes 'visible'.
+   * - using bootstrap and so adds 'visible' to the element's classlist not show.
+   * Note function will only remove 'hide' class and have no impact on any other classes
+   * that are currently on the element before function call.
+   * @param {*} element
+   */
+  function show(element) {
+    element.removeClass('invisible');
+  }
+
+
+ 
+
+
+/**
+ * Display functions - add to DOM
+ */
+
+/**
+ * Reads user's search city input and paceRetrieve open weather data (current weather and forecast) for city being searched.
+ * @param {*} event 
+ */
+// Rename showWeatherByCity   loadWeatherByCity???
+function getWeatherByCity(event) {
     event.preventDefault();
+    
+    console.log(`getWeatherByCity: ${searchCity}`);
+    
+    // Validate user's input - search criteria 
+    var searchCity = searchInput.val().trim().toLowerCase(); 
+    if (! searchCity) { // not falsey = empty string is falsey searchText !==''
+        alert('please enter a city name');
+        // TODO: Display alert /modal or display message no city provided..choose if alert or on page to display error
+        //recipeResultsSection.html('<p class="no-search" >Please enter a city to retrieve daa for. </p>');
+        return;
+    }
+    
 
-    var searchCity = searchInput.val().trim().toLowerCase(); // using jquery
-    // .trim().toLowerCase()
+    // retrieve todays weather by city
+    $.get(currentWeatherURL + `q=${searchCity}`)
+        .then(function (todaysWeatherData) {
+                console.log(todaysWeatherData); 
 
-    //validate not empty
-    if (searchCity) { // not falsey = empty string is falsey searchText !==''
-        console.log(`searchCity = $searchCity`);
 
+                //displayTodaysWeather(todaysWeatherData); 
+                // generateTodaysWeatherSection 
+                injectTodaysWeather(todaysWeatherData); // in html
+
+
+                let longitude = todaysWeatherData.coord.lon;
+                let latitude = todaysWeatherData.coord.lat;
+
+                // retrieve 5 day forecast for city
+                $.get(forecastURL + `lat=${latitude}&lon=${longitude}`)
+                    .then(function(forecast5DayData) {
+                            console.log(forecast5DayData);  
+                            // loop over forecastData.list array pull data for 5 days
+                            // TODO Need to search for 5 whole data... 
+
+                            // for(let i=0; i< NUM_DAYS_FORECAST; i++) {
+                            for (var forecastObj of forecast5DayData.list) {
+                               
+                                /*  let currForecast = forecastData.list[i]; */
+                                console.log(forecastObj);
+                    
+                                injectDayForecast(searchCity, forecastObj);
+                            }
+                    })
+        })
+
+    
+} 
+                
+/**
+ * 
+ * @param {*} currWeather  - matched object from api search, representing today's weather given search criteria
+ */
+function injectTodaysWeather(currWeather) {
+    // Parses result data from api and generates 
+    // matchObj = matched results from api call weather cureent matching city
+
+
+    if (!currWeather) {
+        todaySection.html('<p class="no-search" >No weather information found</p>');
+        return;
     }
 
-    console.log(`search weather request for ${searchCity}`)
-    displayCurrentWeather(searchCity); // temp hardcode for now
-    display5DayForecast();
+    console.log(currWeather); 
+    console.log(`${weatherIconURL + currWeather.weather[0].icon} + .png`);
+                    
+
+    console.log(`
+        City: ${currWeather.main.name}    
+        Temp1: ${degrees.format(Math.round(currWeather.main.temp))}  
+        Feels Like: ${degrees.format(Math.round(currWeather.main.feels_like))}
+        Humidity: ${currWeather.main.humidity}%
+        Wind: ${currWeather.wind.speed} KPH
+        Icon: ${currWeather.weather[0].icon}
+        Lat: ${currWeather.coord.lat}
+        Lon: ${currWeather.coord.lon}
+        IconDescription2: ${currWeather.weather[0].description} icon for image alt tag
+        IconURL2: ${weatherIconURL + currWeather.weather[0].icon}.png
+    `);
+
+    todaySection.append(`
+        <div  class="card-body" style="width: 18rem;">
+
+            <h5 class="card-title">
+                ${currWeather.name} (DD/MM/YYYY) 
+                <img src="${weatherIconURL + currWeather.weather[0].icon}.png" alt="${currWeather.weather[0].description}" class="weather-img">
+            </h5>
+            <!-- <h6 class="card-subtitle mb-2 text-muted">Card subtitle</h6> -->
+            <p class="card-text">Temp: ${degrees.format(Math.round(currWeather.main.temp))}  </p>
+            
+            <p class="card-text">Feels like: ${degrees.format(Math.round(currWeather.main.feels_like))}</p>
+            <p class="card-text">Wind: ${currWeather.wind.speed} KPH</p>
+            <p class="card-text">Humidity: ${currWeather.main.humidity}%</p>
+        </div>
+    `);
+    
+  show(todaySection);
+
+}
 
 
+/**
+ * Generate Day Forecast Card  generateDayForecast Card
+ * Inject into forecastSection
+ * @param forecastObj - data object representing one day's forecast
+ */
+//injectDayForecast
+function injectDayForecast(cityName, forecastObj) {
+    console.log(forecastObj);
+            
+    console.log(`
+            Date: ${forecastObj.dt_txt} 
+            Temp2: ${Math.round(forecastObj.main.temp)}  
+            Temp: ${degrees.format(Math.round(forecastObj.main.temp))} 
+            Feels Like: ${degrees.format(Math.round(forecastObj.main.feels_like))}
+            Humidity: ${forecastObj.main.humidity}% 
+            Wind: ${forecastObj.wind.speed} KPH
+            Icon: ${forecastObj.weather[0].icon}
+            IconURL: ${weatherIconURL + forecastObj.weather[0].icon}.png
+            IconDescription: ${forecastObj.weather[0].description} icon for image alt tag
+    `);
+    
+    forecastSection.append(`
+        <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        ${forecastObj.name} (DD/MM/YYYY Date: ${forecastObj.dt_txt} ) 
+                        <img src="${weatherIconURL + forecastObj.weather[0].icon}.png" alt="${forecastObj.weather[0].description}" class="weather-img">
+                    </h5>
+                    <!-- <h6 class="card-subtitle mb-2 text-muted">Card subtitle</h6> -->
+                    <p class="card-text">Temp: ${degrees.format(Math.round(forecastObj.main.temp))}  </p>
+                    <p class="card-text">Feels like: ${degrees.format(Math.round(forecastObj.main.feels_like))}</p>
+                    <p class="card-text">Wind: ${forecastObj.wind.speed} KPH</p>
+                    <p class="card-text">Humidity: ${forecastObj.main.humidity}%</p>
+                </div>
+        </div>
+    `);
+
+    show(forecastSection);
+  
+}
+
+
+/*             display5DayForecast(todaysWeatherData.coord.lat, todaysWeatherData.coord.lon);
+*/
+
+// TODO .error
         // update local storage
         //updateLocalStorage();  proj
 
         // refresh the page
         //location.reload(true); proj
-}
+
 
 // retrieve from local storage - see seperate class...or create obj for...
+
+/**
+ * Generates html for history buttons
+ */
 function displayHistory() {
 
     console.log(`displayHistory...`);
@@ -74,21 +259,205 @@ function displayHistory() {
 }
 
 
-const degrees = new Intl.NumberFormat('en-US', {
-    style: 'unit',
-    unit: 'celsius',
-  });
-  
-
-
 
                /*  Temp2: ${degrees.format(${currTemp}))  */
 // by city
 // TODO rename getCurrentWeather 
-function displayCurrentWeather(cityName) {
+
+
+
+/** ----------------------------------------
+ * Functions to retrieve weather data from API 
+ * and display
+ * 
+ -------------------------------------------*/
+
+
+ function displayCurrentWeather(cityName) {
+
     console.log(`displayCurrentWeather( ${cityName})`);
 
+
+    console.log(degrees.format(22));
+ 
     
+    $.get(currentWeatherURL + `q=${cityName}`)
+        .then(function(currWeather) {
+            console.log(currWeather); 
+  /*           console.log(currWeather); 
+            var currTemp =  Math.round(currWeather.main.temp);
+            console.log(degrees.format(Math.round(currTemp))); */
+
+            //TODO: Check data returned and no error
+            // add .error
+
+            console.log(`
+                City: ${currWeather.main.name}    
+                Temp1: ${degrees.format(Math.round(currWeather.main.temp))}  
+                Feels Like: ${degrees.format(Math.round(currWeather.main.feels_like))}
+                Humidity: ${currWeather.main.humidity}%
+                Wind: ${currWeather.wind.speed} KPH
+                Icon: ${currWeather.weather[0].icon}
+                Lat: ${currWeather.coord.lat}
+                Lon: ${currWeather.coord.lon}
+                IconDescription2: ${currWeather.weather[0].description} icon for image alt tag
+                IconURL2: ${weatherIconURL + currWeather.weather[0].icon}.png
+            `);
+
+            console.log(`
+                lat = ${currWeather.coord.lat}
+                lon = ${currWeather.coord.lon}`);
+                console.log(currWeather);
+
+            show(todaySection);
+
+                // THEN change to MAKE MORE ADVANCED REQUEST
+
+    } );
+}
+
+// by location
+// call get5DayForecast  -> display5DayForecast
+// call getTodaysForecast -> displayTOdaysForecast
+//              also calls get5DayForecat
+function display5DayForecast(lat, lon) {
+    console.log(`display5DayForecast...`);
+    console.log(`
+        lat = ${lat}
+        lon=${lon}`);
+
+    
+    $.get(forecastURL + `lat=${lat}&lon=${lon}`)
+    .then(function(forecastData) {
+            console.log(forecastData);
+            // loop over forecastData.list array pull data for 5 days
+            
+            // TODO Need to search for 5 whole data... 
+           // for(let i=0; i< NUM_DAYS_FORECAST; i++) {
+           for (var forecastObj of forecastData.list) {
+                console.log(`${weatherIconURL + forecastObj.weather[0].icon} + .png`);
+
+               /*  let currForecast = forecastData.list[i]; */
+                console.log(forecastObj);
+
+                console.log(`
+                        Date: ${forecastObj.dt_txt} 
+                        Temp2: ${Math.round(forecastObj.main.temp)}  
+                        Temp: ${degrees.format(Math.round(forecastObj.main.temp))} 
+                        Feels Like: ${degrees.format(Math.round(forecastObj.main.feels_like))}
+                        Humidity: ${forecastObj.main.humidity}% 
+                        Wind: ${forecastObj.wind.speed} KPH
+                        Icon: ${forecastObj.weather[0].icon}
+                        IconURL: ${weatherIconURL + forecastObj.weather[0].icon}.png
+                        IconDescription: ${forecastObj.weather[0].description} icon for image alt tag
+                `);
+              
+            }
+
+    });
+
+} // end display5DayForecast
+
+
+/**
+ * Retrives current weather for specified city and displays on page
+ * @param { } cityName 
+ */
+function displayCurrentWeatherCombined(cityName) {
+
+    console.log(`displayCurrentWeather( ${cityName})`);
+
+
+    console.log(degrees.format(22));
+ 
+    
+    $.get(currentWeatherURL + `q=${cityName}`)
+        .then(function(currWeather) {
+            console.log(currWeather); // currWeather weather
+
+            console.log(`*${currWeather.main.temp}`);
+
+            var currTemp =  Math.round(currWeather.main.temp);
+            console.log(degrees.format(Math.round(currTemp)));
+
+            console.log(`
+                Temp1: ${degrees.format(Math.round(currWeather.main.temp))}  
+                Feels Like: ${degrees.format(Math.round(currWeather.main.feels_like))}
+                Humidity: ${currWeather.main.humidity}%
+                Wind: ${currWeather.wind.speed} KPH
+                Icon: ${currWeather.weather[0].icon}
+                IconDescription: ${currWeather.weather[0].description} icon for image alt tag
+                IconURL: ${weatherIconURL + currWeather.weather[0].icon} + .png
+            `);
+                /* main.object
+                    main.temp
+                    main.feels_like
+                    main.humidity
+                        wind.speed
+                 */
+                // TODO call displayCurrentWeather
+                // Then call getForecast
+
+                // THEN change to MAKE MORE ADVANCED REQUEST
+
+            $.get(forecastURL + `lat=${currWeather.coord.lat}&lon=${currWeather.coord.lon}`)
+                .then(function(forecastData) {
+                        console.log(forecastData);
+                        // loop over forecastData.list array pull data for 5 days
+                        
+                        // TODO Need to search for 5 whole data... 
+                       // for(let i=0; i< NUM_DAYS_FORECAST; i++) {
+                       for (var forecastObj of forecastData.list) {
+                            console.log(`${weatherIconURL + forecastObj.weather[0].icon} + .png`);
+
+                           /*  let currForecast = forecastData.list[i]; */
+                            console.log(forecastObj);
+
+                            console.log(`
+                                    Date: ${forecastObj.dt_txt} 
+                                    Temp2: ${Math.round(forecastObj.main.temp)}  
+                                    Temp: ${degrees.format(Math.round(forecastObj.main.temp))} 
+                                    Feels Like: ${degrees.format(Math.round(forecastObj.main.feels_like))}
+                                    Humidity: ${forecastObj.main.humidity}% 
+                                    Wind: ${forecastObj.wind.speed} KPH
+                                    Icon: ${forecastObj.weather[0].icon}
+                                    IconURL: ${weatherIconURL + forecastObj.weather[0].icon} + .png
+                                    IconDescription: ${forecastObj.weather[0].description} icon for image alt tag
+                            `);
+
+                          /*   let weatherIconId = currForecast.weather[0].icon;   //use this
+
+                            console.log(`URL = ${weatherIconURL} + ${weatherIconId} + .png`); */
+
+               /*              $.get(`${weatherIconURL}${weatherIconId}.png`)
+                            .then(function(data) {
+                                    console.log(data);
+                                    // loop over forecastData.list array pull data for 5 days
+
+
+                                    //weatherIcon
+                            }); */
+                         
+                        }
+
+                    });
+             } );
+}
+
+
+
+// by id - utility func
+function buildWeatherIconURL(id) {
+    console.log(`retrieveWeatherIcon...`);
+}
+
+
+
+
+function displayCurrentWeatherCombined(cityName) {
+
+    console.log(`displayCurrentWeather( ${cityName})`);
+
 
     console.log(degrees.format(22));
  
@@ -171,40 +540,36 @@ function displayCurrentWeather(cityName) {
 }
 
 
-/* $.each(data.list, function(index, val) {
-    wf += "<p>" // Opening paragraph tag
-    wf += "<b>Day " + index + "</b>: " // Day
-    wf += val.main.temp + "&degC" // Temperature
-    wf += "<span> | " + val.weather[0].description + "</span>"; // Description
-    wf += "<img src='https://openweathermap.org/img/w/" + val.weather[0].icon + ".png'>" // Icon
-    wf += "</p>" // Closing paragraph tag
-  });
- */
-
-// by location
-function display5DayForecast(location) {
-    console.log(`display5DayForecast...`);
-}
-// by id - utility func
-function retrieveWeatherIcon(id) {
-    console.log(`retrieveWeatherIcon...`);
-}
 
 function setupEventListeners() {
     console.log(`event listeners setup...`);
 
     //searchInput.addEventListener('click', getCurrentWeather);
-    searchBtn.click(getWeatherData);
+    searchBtn.click(getWeatherByCity);
 }
 
+function clearResults() {
+
+    todaySection.html('');
+    forecastSection.html('');
+    hide(todaySection);
+    hide(forecastSection);
+
+}
+
+
+/** ----------------------------------------
+ * Init onload functionality - to be triggered on page load.
+ * -----------------------------------------*/
 
 function init() {
     setupEventListeners();
-    displayHistory();
+    clearResults(); // ensure no results currently shown
+
+    //TODO: displayHistory();
 }
 
-//key: e578f69e
-//  http://www.omdbapi.com/?i=tt3896198&apikey=e578f69e
+
 
 
 init();
