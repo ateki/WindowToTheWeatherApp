@@ -110,30 +110,22 @@ function getWeatherByCity(event) {
     // retrieve todays weather by city
     $.get(currentWeatherURL + `q=${searchCity}`)
         .then(function (todaysWeatherData) {
-                console.log(todaysWeatherData); 
 
-
-                //displayTodaysWeather(todaysWeatherData); 
-                // generateTodaysWeatherSection 
-                injectTodaysWeather(todaysWeatherData); // in html
-
-
-                let longitude = todaysWeatherData.coord.lon;
-                let latitude = todaysWeatherData.coord.lat;
+                injectTodaysWeather(todaysWeatherData); 
 
                 // retrieve 5 day forecast for city
+                let longitude = todaysWeatherData.coord.lon;
+                let latitude = todaysWeatherData.coord.lat;
                 $.get(forecastURL + `lat=${latitude}&lon=${longitude}`)
                     .then(function(forecast5DayData) {
-                            console.log(forecast5DayData);  
                             // loop over forecastData.list array pull data for 5 days
-                            // TODO Need to search for 5 whole data... 
-
+                            // TODO Grab only 5 days - 1 forecast per day.
+                            // Poss display hi and low of day?
+                            
                             // for(let i=0; i< NUM_DAYS_FORECAST; i++) {
                             for (var forecastObj of forecast5DayData.list) {
                                
-                                /*  let currForecast = forecastData.list[i]; */
-                                console.log(forecastObj);
-                    
+                                console.log(`Galling injectDayForecast with city=${searchCity} forecastObj=${forecastObj}`);
                                 injectDayForecast(searchCity, forecastObj);
                             }
                     })
@@ -141,7 +133,10 @@ function getWeatherByCity(event) {
 
     
 } 
-                
+             
+
+
+
 /**
  * 
  * @param {*} currWeather  - matched object from api search, representing today's weather given search criteria
@@ -157,9 +152,6 @@ function injectTodaysWeather(currWeather) {
     }
 
     console.log(currWeather); 
-    console.log(`${weatherIconURL + currWeather.weather[0].icon} + .png`);
-                    
-
     console.log(`
         City: ${currWeather.main.name}    
         Temp1: ${degrees.format(Math.round(currWeather.main.temp))}  
@@ -173,11 +165,14 @@ function injectTodaysWeather(currWeather) {
         IconURL2: ${weatherIconURL + currWeather.weather[0].icon}.png
     `);
 
+  
+
+    let todaysDate = moment().format('DD/MM/YYYY')
     todaySection.append(`
         <div  class="card-body" style="width: 18rem;">
 
             <h5 class="card-title">
-                ${currWeather.name} (DD/MM/YYYY) 
+                ${currWeather.name} (${todaysDate}) 
                 <img src="${weatherIconURL + currWeather.weather[0].icon}.png" alt="${currWeather.weather[0].description}" class="weather-img">
             </h5>
             <!-- <h6 class="card-subtitle mb-2 text-muted">Card subtitle</h6> -->
@@ -201,7 +196,7 @@ function injectTodaysWeather(currWeather) {
  */
 //injectDayForecast
 function injectDayForecast(cityName, forecastObj) {
-    console.log(forecastObj);
+    console.log(`injectDayForecast calling city=${cityName} forecastObj=${forecastObj}`);
             
     console.log(`
             Date: ${forecastObj.dt_txt} 
@@ -214,12 +209,13 @@ function injectDayForecast(cityName, forecastObj) {
             IconURL: ${weatherIconURL + forecastObj.weather[0].icon}.png
             IconDescription: ${forecastObj.weather[0].description} icon for image alt tag
     `);
-    
+
+    let forecastDate = moment(`${forecastObj.dt_txt}`).format('DD/MM/YYYY')
     forecastSection.append(`
         <div class="card">
                 <div class="card-body">
                     <h5 class="card-title">
-                        ${forecastObj.name} (DD/MM/YYYY Date: ${forecastObj.dt_txt} ) 
+                        ${forecastObj.name} (${forecastDate} ) 
                         <img src="${weatherIconURL + forecastObj.weather[0].icon}.png" alt="${forecastObj.weather[0].description}" class="weather-img">
                     </h5>
                     <!-- <h6 class="card-subtitle mb-2 text-muted">Card subtitle</h6> -->
@@ -544,7 +540,7 @@ function displayCurrentWeatherCombined(cityName) {
 function setupEventListeners() {
     console.log(`event listeners setup...`);
 
-    //searchInput.addEventListener('click', getCurrentWeather);
+    //searchInput.addEventListener('click', getWeatherByCity);
     searchBtn.click(getWeatherByCity);
 }
 
